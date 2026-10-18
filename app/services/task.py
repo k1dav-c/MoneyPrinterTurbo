@@ -26,6 +26,7 @@ from app.services import (
     muapi,
     ofox,
     sonilo,
+    storybook,
     subtitle,
     task_artifacts,
     twelvelabs,
@@ -97,7 +98,7 @@ _VIDEO_MUSIC_PROVIDERS = {
 _SUPPORTED_VIDEO_SOURCES = frozenset({
     "pexels", "pixabay", "coverr", "local", "wavespeed",
     "volcengine_seedance", "ofox", "metaso_minimax", "muapi",
-    "loomloom", "openai_image",
+    "loomloom", "openai_image", "storybook",
 })
 
 
@@ -1541,6 +1542,11 @@ def _run_pipeline(
         return _mark_task_failed(
             task_id, "preflight", f"unsupported video source: {params.video_source!r}"
         )
+
+    if params.video_source == storybook.SOURCE_NAME:
+        # 故事动画自带剧本、配音、画面和录制流程，与素材拼接流水线完全不同，
+        # 在这里整体分流，复用的只有失败状态结构和最终合成。
+        return storybook.run(task_id, params, stop_at=stop_at, fail=_mark_task_failed)
 
     if (
         stop_at in {"materials", "video"}

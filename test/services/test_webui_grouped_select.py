@@ -110,6 +110,7 @@ def test_grouped_video_source_keeps_groups_and_accessible_label_binding():
             "Stock Video",
             "AI Video",
             "AI Image",
+            "AI Animation",
             "Local Files",
         ]
         assert [
@@ -125,6 +126,7 @@ def test_grouped_video_source_keeps_groups_and_accessible_label_binding():
             "wavespeed",
             "muapi",
             "openai_image",
+            "storybook",
             "local",
         ]
 

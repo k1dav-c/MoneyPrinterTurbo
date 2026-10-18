@@ -603,6 +603,24 @@
     "kimi_code.oauth.region_mismatch": "Signed in for region \"{authorized}\", but the selected API Platform is \"{selected}\". Requests will use \"{authorized}\" to match your credential; sign in again to switch regions.",
     "kimi_code.oauth.network_error": "Could not reach the Kimi authorization service (network error). Check your connection, then start sign-in again.",
     "kimi_code.oauth.changed": "Sign-in state changed in another page. This authorization has stopped; sign in again if needed.",
-    "kimi_code.oauth.poll_retry": "Network error while checking the authorization status; retrying automatically…"
+    "kimi_code.oauth.poll_retry": "Network error while checking the authorization status; retrying automatically…",
+    "AI Animation": "AI Animation",
+    "Hand-drawn Storybook Animation": "Hand-drawn Storybook Animation (Claude)",
+    "Hand-drawn Storybook Animation Help": "The LLM writes the story in three rounds (write → critique → storyboard), Claude Code draws it as a code-driven watercolor/ink animation, then it is voiced, recorded and subtitled. Needs a logged-in claude CLI and takes 10-40 minutes.",
+    "Storybook Style": "Art Style",
+    "Storybook Style Watercolor": "Watercolor picture book",
+    "Storybook Style Ink Wash": "Chinese ink-wash myth",
+    "Storybook Style Gongbi Scroll": "Gongbi city handscroll",
+    "Storybook Style Night Picture Book": "Cozy night picture book",
+    "Storybook Duration": "Target Duration",
+    "Storybook Duration Help": "Approximate length; the final video follows the real narration length.",
+    "Storybook Use Doubao Voice": "Use Doubao voice (narrator + characters)",
+    "Storybook Use Doubao Voice Help": "Uses Volcengine Doubao TTS 2.0 with different tones for narrator and characters. Falls back to the voice selected in Audio Settings when no API key is configured.",
+    "Doubao TTS Not Configured": "Doubao TTS API key is not set; the voice from Audio Settings will be used.",
+    "Doubao TTS API Key": "Doubao TTS API Key (Volcengine)",
+    "Doubao TTS API Key Help": "API key from the Volcengine speech console (speech synthesis 2.0). Can also be provided as the DOUBAO_TTS_API_KEY environment variable.",
+    "Doubao TTS Voice": "Doubao TTS Voice",
+    "Storybook Claude Model": "Storybook Claude Model",
+    "Storybook Claude Model Help": "Model passed to the claude CLI when drawing the animation, e.g. opus. Empty uses the Claude Code provider model or the CLI default."
   }
 }

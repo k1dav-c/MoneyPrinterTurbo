@@ -449,6 +449,35 @@ claude_code_model_name = ""
 claude_code_cli_path = ""
 claude_code_timeout = ""
 
+# Hand-drawn storybook animation (video_source = "storybook").
+# Method from https://github.com/lhlGitHub/hand-drawn-storybook-animation-skill:
+# the LLM above writes the story in three rounds (write -> critique ->
+# storyboard), the claude CLI (same login as the claude_code provider) draws
+# it as a code-driven canvas animation, headless Chromium records it, and the
+# subtitles/BGM settings are applied as usual. Requires Playwright + Chromium
+# (included in Dockerfile.claude).
+# storybook_skill_path: SKILL.md of the skill. Empty -> STORYBOOK_SKILL_PATH env
+#   or resource/skills/hand-drawn-storybook-animation/SKILL.md.
+# storybook_claude_model: e.g. "opus"; empty -> claude_code_model_name -> CLI default.
+# storybook_claude_timeout: seconds per claude call (default 2400).
+# storybook_fps: frames per second of the recording (default 24).
+# storybook_fix_attempts: how many times Claude may fix a page that fails to load.
+# storybook_claude_effort: --effort for the claude CLI (low/medium/high/xhigh/max).
+storybook_skill_path = ""
+storybook_claude_model = ""
+storybook_claude_timeout = ""
+storybook_fps = 24
+storybook_fix_attempts = 2
+storybook_claude_effort = "medium"
+
+# Doubao TTS (Volcengine speech synthesis 2.0 / seed-tts-2.0), used by the
+# storybook source for narration and character voices. Create an API key in
+# the new Volcengine speech console; DOUBAO_TTS_API_KEY env also works.
+# Empty key -> the storybook source falls back to the voice selected in the UI.
+doubao_tts_api_key = ""
+doubao_tts_voice = "zh_female_vv_uranus_bigtts"
+doubao_tts_resource_id = "seed-tts-2.0"
+
 # Kimi Code (Kimi subscription). No API key: sign in once in the browser from
 # Settings -> LLM Settings (OAuth device authorization, China or Global
 # platform) and requests run on your Kimi Code plan usage limits. Credentials

@@ -22,6 +22,25 @@ PROVIDER_TIPS_PREFIXES = (
 # 避免把完全相同的品牌名复制十份，也避免长说明后续只更新部分语言。
 ENGLISH_FALLBACK_KEYS = frozenset(
     {
+        # 手绘故事动画（fork 新增）只维护中英文，其它语言回退英文。
+        "AI Animation",
+        "Hand-drawn Storybook Animation",
+        "Hand-drawn Storybook Animation Help",
+        "Storybook Style",
+        "Storybook Style Watercolor",
+        "Storybook Style Ink Wash",
+        "Storybook Style Gongbi Scroll",
+        "Storybook Style Night Picture Book",
+        "Storybook Duration",
+        "Storybook Duration Help",
+        "Storybook Use Doubao Voice",
+        "Storybook Use Doubao Voice Help",
+        "Doubao TTS Not Configured",
+        "Doubao TTS API Key",
+        "Doubao TTS API Key Help",
+        "Doubao TTS Voice",
+        "Storybook Claude Model",
+        "Storybook Claude Model Help",
         "AI Video Quote Required",
         "AI Video Quote Retained For Retry",
         "AI Video Quote Estimate Incomplete",

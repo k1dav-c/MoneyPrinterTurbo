@@ -1,0 +1,50 @@
+# 手绘故事动画（video_source = "storybook"）的运行方式，同时包含 claude_code
+# LLM Provider 所需的 claude CLI。
+#
+# Claude 订阅鉴权二选一：
+#   A. 在宿主机生成长期令牌后启动：
+#        export CLAUDE_CODE_OAUTH_TOKEN="$(claude setup-token)"
+#        docker compose -f docker-compose.storybook.yml up -d --build
+#   B. 不设令牌直接启动，然后在容器里交互登录一次（凭证保存在 claude-config 卷）：
+#        docker compose -f docker-compose.storybook.yml exec webui claude
+# 豆包配音的 API Key 可在 WebUI 设置里填写，或通过 DOUBAO_TTS_API_KEY 传入。
+
+x-common-build: &common-build
+  context: .
+  dockerfile: Dockerfile.storybook
+
+x-common-volumes: &common-volumes
+  - ./:/MoneyPrinterTurbo
+  - claude-config:/root/.claude
+
+x-common-environment: &common-environment
+  CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+  DOUBAO_TTS_API_KEY: ${DOUBAO_TTS_API_KEY:-}
+
+services:
+  webui:
+    build: *common-build
+    image: moneyprinterturbo-storybook
+    container_name: "moneyprinterturbo-webui"
+    ports:
+      - "127.0.0.1:8501:8501"
+    command: [ "streamlit", "run", "./webui/Main.py", "--server.address=0.0.0.0", "--server.port=8501", "--browser.serverAddress=127.0.0.1", "--server.enableCORS=True", "--browser.gatherUsageStats=False", "--client.toolbarMode=minimal", "--logger.hideWelcomeMessage=True", "--server.showEmailPrompt=False" ]
+    volumes: *common-volumes
+    environment: *common-environment
+    # Chromium 录制需要较大的共享内存，默认 64MB 容易崩溃。
+    shm_size: "1gb"
+    restart: always
+  api:
+    image: moneyprinterturbo-storybook
+    container_name: "moneyprinterturbo-api"
+    depends_on: [ webui ]
+    ports:
+      - "127.0.0.1:8080:8080"
+    command: [ "python3", "main.py" ]
+    volumes: *common-volumes
+    environment: *common-environment
+    shm_size: "1gb"
+    restart: always
+
+volumes:
+  claude-config:

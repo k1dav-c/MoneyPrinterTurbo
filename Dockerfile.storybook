@@ -1,0 +1,52 @@
+# 手绘故事动画（video_source = "storybook"）运行镜像。
+#
+# 在普通镜像的基础上额外需要：
+#   1. claude CLI：用 Claude 订阅按分镜写出 canvas 动画页面；
+#   2. Playwright + Chromium：无头逐帧录制页面；
+#   3. hand-drawn-storybook-animation skill 的 SKILL.md：作为 Claude 的制作方法。
+# Playwright 已不再支持 Debian 11，因此这里基于 bookworm 独立构建，而不是
+# 复用 bullseye 的发布镜像。
+FROM python:3.11-slim-bookworm
+
+WORKDIR /MoneyPrinterTurbo
+RUN chmod 777 /MoneyPrinterTurbo
+ENV PYTHONPATH="/MoneyPrinterTurbo" \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    STORYBOOK_SKILL_PATH=/opt/skills/hand-drawn-storybook-animation/SKILL.md
+
+# 版本固定，避免镜像重建时行为漂移；升级时改这里即可。
+ARG CLAUDE_CODE_VERSION=2.1.302
+ARG NODE_MAJOR=22
+ARG PLAYWRIGHT_VERSION=1.64.0
+ARG SKILL_REPO=https://github.com/lhlGitHub/hand-drawn-storybook-animation-skill.git
+ARG SKILL_REF=main
+
+RUN set -eu; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates curl gnupg git ffmpeg; \
+    curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash -; \
+    apt-get install -y --no-install-recommends nodejs; \
+    npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"; \
+    npm cache clean --force; \
+    rm -rf /var/lib/apt/lists/*; \
+    claude --version
+
+COPY requirements.txt ./
+RUN set -eu; \
+    pip install --no-cache-dir --retries 3 --timeout 60 -r requirements.txt \
+        "playwright==${PLAYWRIGHT_VERSION}"; \
+    playwright install --with-deps chromium; \
+    rm -rf /var/lib/apt/lists/*
+
+# 只取 skill 目录本身；仓库里的预览视频体积较大且运行时用不到。
+RUN set -eu; \
+    git clone --depth 1 --branch "${SKILL_REF}" "${SKILL_REPO}" /tmp/skill; \
+    mkdir -p /opt/skills; \
+    cp -r /tmp/skill/hand-drawn-storybook-animation /opt/skills/; \
+    rm -rf /tmp/skill; \
+    test -f "${STORYBOOK_SKILL_PATH}"
+
+COPY . .
+
+EXPOSE 8501 8080
+CMD ["streamlit", "run", "./webui/Main.py", "--server.address=0.0.0.0", "--server.port=8501", "--browser.serverAddress=127.0.0.1", "--server.enableCORS=True", "--browser.gatherUsageStats=False", "--client.toolbarMode=minimal", "--logger.hideWelcomeMessage=True", "--server.showEmailPrompt=False"]

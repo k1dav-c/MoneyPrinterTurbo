@@ -603,6 +603,24 @@
     "kimi_code.oauth.region_mismatch": "当前凭证属于「{authorized}」区域，但所选 API Platform 为「{selected}」。请求将按凭证区域「{authorized}」发出；如需切换区域，请重新登录。",
     "kimi_code.oauth.network_error": "无法连接 Kimi 授权服务（网络错误）。请检查网络连接后重新发起登录。",
     "kimi_code.oauth.changed": "登录状态已在其他页面变更，本次授权已停止。请按需重新登录。",
-    "kimi_code.oauth.poll_retry": "检查授权状态时网络异常，正在自动重试……"
+    "kimi_code.oauth.poll_retry": "检查授权状态时网络异常，正在自动重试……",
+    "AI Animation": "AI 动画",
+    "Hand-drawn Storybook Animation": "手绘故事动画（Claude）",
+    "Hand-drawn Storybook Animation Help": "大模型分三轮写剧本（写故事 → 自我批判 → 分镜），Claude Code 用代码画出水彩/水墨动画，再配音、录制并加字幕。需要已登录的 claude CLI，耗时约 10–40 分钟。",
+    "Storybook Style": "画风",
+    "Storybook Style Watercolor": "手绘水彩绘本",
+    "Storybook Style Ink Wash": "中国神话水墨",
+    "Storybook Style Gongbi Scroll": "工笔水墨城市长卷",
+    "Storybook Style Night Picture Book": "夜晚绘本",
+    "Storybook Duration": "目标时长",
+    "Storybook Duration Help": "大致时长，成片以实际配音长度为准。",
+    "Storybook Use Doubao Voice": "使用豆包配音（旁白 + 角色）",
+    "Storybook Use Doubao Voice Help": "使用火山引擎豆包语音合成 2.0，旁白和角色用不同语气。未配置 API Key 时改用音频设置里选择的声音。",
+    "Doubao TTS Not Configured": "尚未配置豆包语音 API Key，将使用音频设置里的声音。",
+    "Doubao TTS API Key": "豆包语音 API Key（火山引擎）",
+    "Doubao TTS API Key Help": "在火山引擎语音控制台（语音合成 2.0）创建的 API Key，也可以用环境变量 DOUBAO_TTS_API_KEY 提供。",
+    "Doubao TTS Voice": "豆包音色",
+    "Storybook Claude Model": "故事动画 Claude 模型",
+    "Storybook Claude Model Help": "绘制动画时传给 claude CLI 的模型，例如 opus。留空则使用 Claude Code Provider 的模型或 CLI 默认模型。"
   }
 }

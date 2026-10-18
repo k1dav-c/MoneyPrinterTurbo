@@ -48,12 +48,14 @@ from app.services import bgm as bgm_service
 from app.services import material_upload as material_upload_service
 from app.services import (
     cache_manager,
+    doubao_tts,
     llm,
     loomloom,
     material,
     metaso_minimax,
     muapi,
     ofox,
+    storybook,
     subtitle,
     video,
     volcengine_seedance,
@@ -136,6 +138,7 @@ VIDEO_SOURCE_GROUPS = {
         "muapi",
     ),
     "ai_image": ("openai_image",),
+    "ai_animation": ("storybook",),
     "local": ("local",),
 }
 # Upload-Post 的 API Key 与发布用户分别在两个页面管理，并且发布用户名称
@@ -3847,6 +3850,34 @@ def _render_settings_dialog():
                     )
 
                 st.divider()
+                st.markdown(f"**{tr('Hand-drawn Storybook Animation')}**")
+                doubao_api_key = st.text_input(
+                    tr("Doubao TTS API Key"),
+                    value=str(config.app.get("doubao_tts_api_key", "") or ""),
+                    type="password",
+                    help=tr("Doubao TTS API Key Help"),
+                    key="doubao_tts_api_key_input",
+                )
+                _set_runtime_config("app", "doubao_tts_api_key", doubao_api_key.strip())
+                doubao_voice = st.text_input(
+                    tr("Doubao TTS Voice"),
+                    value=str(config.app.get("doubao_tts_voice", "") or ""),
+                    placeholder=doubao_tts.DEFAULT_VOICE,
+                    key="doubao_tts_voice_input",
+                )
+                _set_runtime_config("app", "doubao_tts_voice", doubao_voice.strip())
+                storybook_model = st.text_input(
+                    tr("Storybook Claude Model"),
+                    value=str(config.app.get("storybook_claude_model", "") or ""),
+                    placeholder="opus",
+                    help=tr("Storybook Claude Model Help"),
+                    key="storybook_claude_model_input",
+                )
+                _set_runtime_config(
+                    "app", "storybook_claude_model", storybook_model.strip()
+                )
+
+                st.divider()
                 seedance_api_key_value = str(
                     config.app.get("volcengine_seedance_api_key", "") or ""
                 ).strip()
@@ -5193,6 +5224,7 @@ def _render_video_settings(panel, params):
                 "muapi": tr("MuAPI AI Video"),
                 "loomloom": tr("Shengsuan Cloud AI Video"),
                 "openai_image": tr("OpenAI Compatible Text-to-Image"),
+                "storybook": tr("Hand-drawn Storybook Animation"),
                 "local": tr("Local file"),
             }
             saved_video_source_name = str(
@@ -5204,6 +5236,7 @@ def _render_video_settings(panel, params):
                     (tr("Stock Video"), VIDEO_SOURCE_GROUPS["stock_video"]),
                     (tr("AI Video"), VIDEO_SOURCE_GROUPS["ai_video"]),
                     (tr("AI Image"), VIDEO_SOURCE_GROUPS["ai_image"]),
+                    (tr("AI Animation"), VIDEO_SOURCE_GROUPS["ai_animation"]),
                     (tr("Local Material"), VIDEO_SOURCE_GROUPS["local"]),
                 ),
                 default_value=saved_video_source_name,
@@ -5232,6 +5265,10 @@ def _render_video_settings(panel, params):
                 st.caption(tr("Metaso MiniMax H3 Help"))
             if params.video_source == "muapi":
                 st.caption(tr("MuAPI AI Video Help"))
+            if params.video_source == storybook.SOURCE_NAME:
+                # 故事动画不使用素材拼接相关设置，渲染自己的选项后直接返回。
+                _render_storybook_settings(params)
+                return uploaded_files
             if params.video_source == "local":
                 # Streamlit 的文件类型校验对扩展名大小写敏感，这里同时放行大小写两种形式。
                 local_file_types = sorted(
@@ -5515,6 +5552,67 @@ def _render_video_settings(panel, params):
             if params.video_source == "muapi":
                 _render_muapi_video_settings(params)
     return uploaded_files
+
+
+def _render_storybook_settings(params):
+    """故事动画的画风、时长、画幅和配音选项。"""
+    st.caption(tr("Hand-drawn Storybook Animation Help"))
+    style_labels = {
+        "watercolor": tr("Storybook Style Watercolor"),
+        "ink_wash": tr("Storybook Style Ink Wash"),
+        "gongbi_scroll": tr("Storybook Style Gongbi Scroll"),
+        "night_picture_book": tr("Storybook Style Night Picture Book"),
+    }
+    style_values = list(storybook.STYLES)
+    params.storybook_style = stable_selectbox(
+        tr("Storybook Style"),
+        options=style_values,
+        default_value=_saved_ui_choice(
+            "storybook_style", style_values, storybook.DEFAULT_STYLE
+        ),
+        key="storybook_style_select",
+        format_func=style_labels.get,
+    )
+    _set_runtime_config("ui", "storybook_style", params.storybook_style)
+
+    duration_values = [30, 45, 60, 90, 120, 180, 300]
+    params.storybook_duration = stable_selectbox(
+        tr("Storybook Duration"),
+        options=duration_values,
+        default_value=_saved_ui_choice("storybook_duration", duration_values, 60),
+        key="storybook_duration_select",
+        format_func=lambda value: f"{value}s",
+        help=tr("Storybook Duration Help"),
+    )
+    _set_runtime_config("ui", "storybook_duration", params.storybook_duration)
+
+    aspect_options = {
+        VideoAspect.landscape.value: tr("Landscape"),
+        VideoAspect.portrait.value: tr("Portrait"),
+    }
+    aspect_values = list(aspect_options)
+    params.video_aspect = VideoAspect(
+        stable_selectbox(
+            tr("Video Ratio"),
+            options=aspect_values,
+            default_value=_saved_ui_choice(
+                "video_aspect_storybook", aspect_values, VideoAspect.landscape.value
+            ),
+            key="video_aspect_for_storybook",
+            format_func=aspect_options.get,
+        )
+    )
+    _set_runtime_config("ui", "video_aspect_storybook", params.video_aspect.value)
+
+    params.storybook_use_doubao = st.checkbox(
+        tr("Storybook Use Doubao Voice"),
+        value=bool(config.ui.get("storybook_use_doubao", True)),
+        key="storybook_use_doubao_checkbox",
+        help=tr("Storybook Use Doubao Voice Help"),
+    )
+    _set_runtime_config("ui", "storybook_use_doubao", params.storybook_use_doubao)
+    if params.storybook_use_doubao and not doubao_tts.is_enabled():
+        st.caption(tr("Doubao TTS Not Configured"))
 
 
 def _render_wavespeed_video_settings(params):
@@ -8030,6 +8128,7 @@ def _render_generation_controls(
             "muapi",
             "loomloom",
             "openai_image",
+            "storybook",
             "local",
         ]:
             _remove_active_generation_task(task_id)
