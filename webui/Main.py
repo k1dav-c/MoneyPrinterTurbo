@@ -2185,7 +2185,7 @@ def get_llm_provider_tips(provider_id, **kwargs):
     # 统一使用英文，避免在 locale 中复制英文后长期不同步。后续某个语种完成
     # 全量翻译后，再将它加入这里的独立维护范围。
     ui_language = st.session_state.get("ui_language", "en")
-    tips_language = ui_language if ui_language in {"zh", "en"} else "en"
+    tips_language = ui_language if ui_language in {"zh", "zh-TW", "en"} else "en"
     tips = (
         locales.get(tips_language, {}).get("Translation", {}).get(provider.tips_key, "")
     )
@@ -2262,7 +2262,7 @@ def get_tts_provider_tips(provider_id):
     # TTS 配置说明与 LLM Provider 采用相同维护策略：只维护中英文，
     # 其它界面语言统一回退英文，避免复制后长期不同步。
     ui_language = st.session_state.get("ui_language", "en")
-    tips_language = ui_language if ui_language in {"zh", "en"} else "en"
+    tips_language = ui_language if ui_language in {"zh", "zh-TW", "en"} else "en"
     return (
         locales.get(tips_language, {})
         .get("Translation", {})

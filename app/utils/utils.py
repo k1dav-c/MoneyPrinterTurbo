@@ -505,6 +505,12 @@ def resolve_ui_language(
             return None
         if normalized in supported_by_lower:
             return supported_by_lower[normalized]
+        # 繁体中文地区（台湾、香港、澳门）和 zh-Hant 优先使用繁体界面，
+        # 不能按基础代码回退到简体 zh。
+        if normalized.startswith(("zh-hant", "zh-hk", "zh-mo")) and (
+            "zh-tw" in supported_by_lower
+        ):
+            return supported_by_lower["zh-tw"]
         base_language = normalized.split("-", 1)[0]
         return supported_by_lower.get(base_language)
 

@@ -387,6 +387,35 @@ class TestWebuiI18n(unittest.TestCase):
                         _markdown_urls(en_translations[key]),
                     )
 
+    def test_traditional_chinese_mirrors_simplified_chinese(self):
+        # 繁体中文由简体中文转换而来，和 zh 一样维护全部 key（包括 Provider 长说明）。
+        zh_translations = _load_translation("zh")
+        tw_translations = _load_translation("zh-TW")
+        self.assertEqual(sorted(set(zh_translations) - set(tw_translations)), [])
+        for key, value in zh_translations.items():
+            if not isinstance(value, str):
+                continue
+            with self.subTest(key=key):
+                self.assertEqual(
+                    _format_placeholders(tw_translations[key]),
+                    _format_placeholders(value),
+                )
+                self.assertEqual(
+                    _markdown_urls(tw_translations[key]), _markdown_urls(value)
+                )
+
+    def test_traditional_chinese_browser_locales_use_zh_tw(self):
+        supported = ["zh", "zh-TW", "en"]
+        for browser_locale in ("zh-TW", "zh_tw", "zh-HK", "zh-MO", "zh-Hant", "zh-Hant-TW"):
+            with self.subTest(browser_locale=browser_locale):
+                self.assertEqual(
+                    utils.resolve_ui_language("", browser_locale, supported), "zh-TW"
+                )
+        self.assertEqual(utils.resolve_ui_language("", "zh-CN", supported), "zh")
+        self.assertEqual(utils.resolve_ui_language("", "zh-Hans", supported), "zh")
+        # 没有繁体语言文件时仍回退到简体。
+        self.assertEqual(utils.resolve_ui_language("", "zh-HK", ["zh", "en"]), "zh")
+
     def test_script_language_options_include_russian_and_catalan(self):
         tree = ast.parse(WEBUI_MAIN.read_text(encoding="utf-8"))
         support_locales = None
