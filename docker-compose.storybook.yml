@@ -27,7 +27,7 @@ services:
     image: moneyprinterturbo-storybook
     container_name: "moneyprinterturbo-webui"
     ports:
-      - "127.0.0.1:8501:8501"
+      - "${MPT_BIND_ADDRESS:-127.0.0.1}:8501:8501"
     command: [ "streamlit", "run", "./webui/Main.py", "--server.address=0.0.0.0", "--server.port=8501", "--browser.serverAddress=127.0.0.1", "--server.enableCORS=True", "--browser.gatherUsageStats=False", "--client.toolbarMode=minimal", "--logger.hideWelcomeMessage=True", "--server.showEmailPrompt=False" ]
     volumes: *common-volumes
     environment: *common-environment
@@ -39,7 +39,7 @@ services:
     container_name: "moneyprinterturbo-api"
     depends_on: [ webui ]
     ports:
-      - "127.0.0.1:8080:8080"
+      - "${MPT_BIND_ADDRESS:-127.0.0.1}:8080:8080"
     command: [ "python3", "main.py" ]
     volumes: *common-volumes
     environment: *common-environment
