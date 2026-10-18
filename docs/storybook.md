@@ -18,9 +18,8 @@
 ## 部署
 
 ```bash
-# 方式 A：宿主机生成长期令牌
-export CLAUDE_CODE_OAUTH_TOKEN="$(claude setup-token)"
-export DOUBAO_TTS_API_KEY="..."   # 可选，也可以在 WebUI 设置里填写
+# 方式 A：把令牌写进 .env（compose 会自动读取）
+cp .env.example .env              # 填 CLAUDE_CODE_OAUTH_TOKEN（`claude setup-token` 的输出）
 docker compose -f docker-compose.storybook.yml up -d --build
 
 # 方式 B：不设令牌启动，然后在容器里登录一次（凭证存在 claude-config 卷）
