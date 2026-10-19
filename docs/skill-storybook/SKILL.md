@@ -12,6 +12,7 @@ description: Use this skill when the user wants a hand-drawn animated video (kno
 - API：http://192.168.9.6:8080（本機 http://127.0.0.1:8080）
 - 部署目錄：`~/src/MoneyPrinterTurbo`，`docker compose -f docker-compose.storybook.yml`
 - 成片：`storage/tasks/<task_id>/final-1.mp4`，網址 `http://192.168.9.6:8080/tasks/<task_id>/final-1.mp4`
+- 字幕：預設**不燒錄**，另存 `storage/tasks/<task_id>/subtitle.srt`（網址同上換成 `subtitle.srt`），上傳 YouTube 時另外掛上
 
 ## 做一支科普影片
 
@@ -27,8 +28,9 @@ description: Use this skill when the user wants a hand-drawn animated video (kno
    helper 自己會輪詢並印出進度，不要另外用 sleep/ps/tail 輪詢。結束時印出 `DONE {...}`，
    內含網址、檔案大小、分鏡和動畫頁面路徑。
 3. **檢查**：`python3 mpt_storybook.py preview <task_id>` 產生 3×3 截圖拼圖，用 Read 看一遍：
-   畫面是否在講旁白講的東西、字卡文字有沒有錯字（分鏡模型偶爾會改字）、字幕是否可讀。
-4. **交付**：給使用者網址、長度、大小，並如實說明看到的瑕疵。你聽不到聲音，要說明沒有試聽。
+   畫面是否在講旁白講的東西、字卡文字有沒有錯字（分鏡模型偶爾會改字）。
+4. **交付**：給使用者影片網址、SRT 網址、長度、大小，並如實說明看到的瑕疵。你聽不到聲音，要說明沒有試聽。
+   字幕沒燒進畫面，所以拼圖上看不到字幕是正常的；字幕內容要另外讀 SRT 檢查。
 
 只給主題、不想寫稿時，可以省略 `--script-file`，改用 `--duration 120`（必要時加 `--prompt` 補充要點），
 系統會用 explainer 模式自動寫稿（定義 → 問題 → 舊方法 → 一個貫穿的例子 → 2–4 個術語 → 應用 → 總結，
@@ -62,6 +64,7 @@ description: Use this skill when the user wants a hand-drawn animated video (kno
 | `--doubao` | 關 | 改用豆包配音（需 `.env` 的 `DOUBAO_TTS_API_KEY`） |
 | `--max-mb` | 20 | 檔案上限，0 = 不壓縮 |
 | `--bgm-volume` | 0.12 | 0 = 不要背景音樂 |
+| `--burn-subtitles` | 關 | 把字幕畫進影片；預設另存 SRT（適合 YouTube） |
 
 ## 時間預期（2 核 CPU）
 

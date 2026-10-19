@@ -629,6 +629,9 @@
     "Max File Size": "文件大小上限",
     "No Compression": "不压缩",
     "Max File Size Help": "超过上限时用两遍 H.264 编码压缩，必要时才降低分辨率。20MB 适合大多数社群平台。",
-    "Compression Failed Warning": "视频压缩失败，已保留未压缩的成片。"
+    "Compression Failed Warning": "视频压缩失败，已保留未压缩的成片。",
+    "Burn In Subtitles": "将字幕烧录进视频",
+    "Burn In Subtitles Help": "关闭：画面不带字幕，另外输出 SRT 字幕文件（适合上传 YouTube）。开启：字幕直接画进画面。",
+    "Download Subtitles": "下载字幕（SRT）"
   }
 }

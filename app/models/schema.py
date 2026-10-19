@@ -137,6 +137,8 @@ class VideoParams(BaseModel):
     sonilo_bgm_prompt: str = Field(default="", max_length=2000)
 
     subtitle_enabled: Optional[bool] = True
+    # False 时字幕只输出为 subtitle.srt，不烧录进画面（方便上传 YouTube 等平台另挂字幕）。
+    subtitle_burn_in: bool = True
     subtitle_position: Optional[str] = config.ui.get(
         "subtitle_position", "bottom"
     )  # top, bottom, center, custom, two_thirds_bottom

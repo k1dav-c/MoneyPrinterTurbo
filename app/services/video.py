@@ -1797,7 +1797,12 @@ def generate_video(
                 font_size=params.font_size,
             )
 
-        if params.subtitle_enabled and subtitle_path and os.path.exists(subtitle_path):
+        if (
+            params.subtitle_enabled
+            and params.subtitle_burn_in
+            and subtitle_path
+            and os.path.exists(subtitle_path)
+        ):
             sub = clip_stack.enter_context(
                 SubtitlesClip(
                     subtitles=moviepy_subtitles(subtitle_path),

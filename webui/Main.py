@@ -2110,6 +2110,26 @@ def _render_generation_task_snapshot(task_id, task):
                             on_click="ignore",
                             use_container_width=True,
                         )
+            subtitle_file = str(task.get("subtitle_path") or "")
+            if subtitle_file and os.path.isfile(subtitle_file):
+                # 字幕不烧录时，SRT 是成片的一部分；烧录时也提供，方便另外上传。
+                with player_cols[1]:
+                    with open(subtitle_file, "rb") as srt_file:
+                        st.download_button(
+                            tr("Download Subtitles"),
+                            data=srt_file,
+                            file_name=os.path.splitext(
+                                _build_video_download_name(
+                                    task.get("video_subject"), 1, 1
+                                )
+                            )[0]
+                            + ".srt",
+                            mime="application/x-subrip",
+                            key=f"download_generated_subtitle_{task_id}",
+                            icon=":material/subtitles:",
+                            on_click="ignore",
+                            use_container_width=True,
+                        )
     except Exception as exc:
         logger.exception(
             f"failed to render generated video preview: task_id={task_id}, "
@@ -7750,6 +7770,14 @@ def _render_subtitle_settings(panel, params):
                 key="subtitle_enabled_checkbox",
             )
             _set_runtime_config("ui", "subtitle_enabled", params.subtitle_enabled)
+            params.subtitle_burn_in = st.checkbox(
+                tr("Burn In Subtitles"),
+                value=bool(config.ui.get("subtitle_burn_in", False)),
+                key="subtitle_burn_in_checkbox",
+                help=tr("Burn In Subtitles Help"),
+                disabled=not params.subtitle_enabled,
+            )
+            _set_runtime_config("ui", "subtitle_burn_in", params.subtitle_burn_in)
             subtitle_settings_disabled = not params.subtitle_enabled
             font_names = get_all_fonts()
             saved_font_name = config.ui.get(

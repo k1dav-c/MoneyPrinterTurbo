@@ -75,6 +75,8 @@ def build_payload(args):
         "bgm_type": "random" if args.bgm_volume > 0 else "",
         "bgm_volume": args.bgm_volume,
         "subtitle_enabled": not args.no_subtitles,
+        # 默认不烧录，字幕另存 subtitle.srt，方便上传 YouTube 时另挂字幕。
+        "subtitle_burn_in": args.burn_subtitles,
         # 浅色水彩底上白字看不清，默认加深色圆角底。
         "text_background_color": not args.no_subtitle_bg,
         "rounded_subtitle_background": not args.no_subtitle_bg,
@@ -155,6 +157,8 @@ def _report_done(task_id, data):
     info = {
         "task_id": task_id,
         "url": f"{PUBLIC}/tasks/{task_id}/final-1.mp4",
+        "srt_url": f"{PUBLIC}/tasks/{task_id}/subtitle.srt",
+        "srt_file": os.path.join(REPO, "storage", "tasks", task_id, "subtitle.srt"),
         "file": path,
         "size_mb": round(size, 2) if size else None,
         "duration_s": data.get("audio_duration"),
@@ -207,6 +211,7 @@ def main():
         p.add_argument("--max-mb", type=float, default=20, help="file size cap, 0 = no compression")
         p.add_argument("--no-subtitles", action="store_true")
         p.add_argument("--no-subtitle-bg", action="store_true")
+        p.add_argument("--burn-subtitles", action="store_true", help="draw subtitles into the video instead of a separate SRT")
 
     add_submit_args(sub.add_parser("submit"))
     run_parser = sub.add_parser("run", help="submit and wait")

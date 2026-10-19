@@ -629,6 +629,9 @@
     "Max File Size": "Max File Size",
     "No Compression": "No compression",
     "Max File Size Help": "Videos larger than this are re-encoded (two-pass H.264) to fit, lowering resolution only when needed. 20 MB suits most social platforms.",
-    "Compression Failed Warning": "Compressing the video failed; the uncompressed video was kept."
+    "Compression Failed Warning": "Compressing the video failed; the uncompressed video was kept.",
+    "Burn In Subtitles": "Burn subtitles into the video",
+    "Burn In Subtitles Help": "Off: the video stays clean and subtitles are delivered as a separate SRT file (best for YouTube). On: subtitles are drawn into the picture.",
+    "Download Subtitles": "Download Subtitles (SRT)"
   }
 }
