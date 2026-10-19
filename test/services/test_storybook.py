@@ -119,6 +119,22 @@ class TestTimeline(unittest.TestCase):
         self.assertIn("--> 00:00:07,000", content)
 
 
+class TestSubtitleClauses(unittest.TestCase):
+    def test_long_sentence_is_split_at_commas_into_short_cues(self):
+        text = "Transformer 是一種神經網路的設計，它做的事其實只有一件：讀一段文字，猜下一個字。"
+        timeline = storybook.Timeline(
+            duration=10, lines=[storybook.TimedLine(1, "narrator", text, 0.0, 6.0)]
+        )
+        with tempfile.TemporaryDirectory() as root:
+            srt = os.path.join(root, "a.srt")
+            storybook.write_subtitles(timeline, srt)
+            blocks = Path(srt).read_text(encoding="utf-8").strip().split("\n\n")
+        cues = [block.split("\n", 2)[2] for block in blocks]
+        self.assertEqual("".join(cues), text)
+        self.assertGreater(len(cues), 1)
+        self.assertTrue(all(len(cue) <= 26 for cue in cues))
+
+
 class TestDoubaoTts(unittest.TestCase):
     def _response(self, body: bytes):
         class _Response(io.BytesIO):

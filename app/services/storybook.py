@@ -66,6 +66,8 @@ OUTRO = 2.5
 _CJK_CHARS_PER_SECOND = 4.2
 _WORDS_PER_SECOND = 2.4
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[。！？!?；;…])\s*|(?<=[.])\s+")
+# 整句仍然太长时，再在逗号、顿号、冒号后面断开。
+_CLAUSE_SPLIT_RE = re.compile(r"(?<=[，、：,:])\s*")
 _CJK_RE = re.compile(r"[぀-ヿ㐀-鿿]")
 
 
@@ -471,13 +473,32 @@ def _format_srt_time(seconds: float) -> str:
     return f"{hours:02d}:{minutes:02d}:{secs:02d},{ms:03d}"
 
 
+def _merge_clauses(clauses: list[str], max_chars: int) -> list[str]:
+    """把短分句重新拼成不超过 max_chars 的字幕行，避免出现两三个字的碎行。"""
+    merged: list[str] = []
+    for clause in (c.strip() for c in clauses):
+        if not clause:
+            continue
+        if merged and len(merged[-1]) + len(clause) <= max_chars:
+            merged[-1] += clause
+        else:
+            merged.append(clause)
+    return merged
+
+
 def write_subtitles(timeline: Timeline, output_file: str, max_chars: int = 26) -> None:
     """按真实音频起止写字幕；过长的句子按标点拆开，时长按字数分摊。"""
     cues = []
     for line in timeline.lines:
-        parts = [p.strip() for p in _SENTENCE_SPLIT_RE.split(line.text) if p.strip()]
-        if len(line.text) <= max_chars or len(parts) <= 1:
-            parts = [line.text]
+        parts = [line.text]
+        if len(line.text) > max_chars:
+            parts = []
+            for sentence in _SENTENCE_SPLIT_RE.split(line.text):
+                sentence = sentence.strip()
+                if len(sentence) > max_chars:
+                    parts.extend(_merge_clauses(_CLAUSE_SPLIT_RE.split(sentence), max_chars))
+                elif sentence:
+                    parts.append(sentence)
         total = sum(len(p) for p in parts) or 1
         start = line.start
         for part in parts:
