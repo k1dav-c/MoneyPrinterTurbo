@@ -7,6 +7,9 @@
   python3 mpt_storybook.py submit ...      # 只提交，打印 task_id
   python3 mpt_storybook.py wait TASK_ID    # 等待完成，打印成片网址
   python3 mpt_storybook.py status TASK_ID
+  python3 mpt_storybook.py active          # 列出还在跑的任务（重启容器前先确认）
+  python3 mpt_storybook.py recompose TASK_ID [--burn-subtitles] [--max-mb 20] [--bgm-volume 0.12]
+                                           # 只重做合成/压缩，沿用已录好的动画，不花 Claude 额度
   python3 mpt_storybook.py preview TASK_ID # 在容器内用 ffmpeg 生成 3x3 截图拼图
 
 环境变量：
@@ -170,6 +173,62 @@ def _report_done(task_id, data):
     return info
 
 
+def active():
+    """列出进行中的任务。任务状态存在内存里，有任务在跑时重启容器会丢失它。"""
+    result = _request("GET", "/api/v1/tasks?page=1&page_size=100")
+    tasks = (result.get("data") or {}).get("tasks") or []
+    running = [t for t in tasks if t.get("state") not in (STATE_COMPLETE, STATE_FAILED)]
+    for task in running:
+        print(f"{task.get('task_id')}  progress {task.get('progress')}%  {_stage(task.get('progress'))}")
+    if not running:
+        print("no running tasks - safe to restart the containers")
+    return running
+
+
+RECOMPOSE_CODE = r"""
+import json, os, shutil, sys
+from app.models.schema import VideoParams
+from app.services import compress, video
+
+task_dir, overrides = sys.argv[1], json.loads(sys.argv[2])
+with open(os.path.join(task_dir, "script.json"), encoding="utf-8") as f:
+    params = dict(json.load(f).get("params") or {})
+params.update(overrides)
+params = VideoParams(**params)
+final = os.path.join(task_dir, "final-1.mp4")
+tmp = os.path.join(task_dir, "final-1.recompose.mp4")
+video.generate_video(
+    video_path=os.path.join(task_dir, "combined-1.mp4"),
+    audio_path=os.path.join(task_dir, "audio.mp3"),
+    subtitle_path=os.path.join(task_dir, "subtitle.srt"),
+    output_file=tmp,
+    params=params,
+)
+compress.compress_to_limit(tmp, params.max_file_size_mb or 0)
+shutil.move(tmp, final)
+print("recomposed", final, os.path.getsize(final))
+"""
+
+
+def recompose(task_id, burn_subtitles, max_mb, bgm_volume):
+    """沿用 combined-1.mp4 和配音，只重做字幕、背景音乐与压缩（约影片长度 × 4.5）。"""
+    overrides = {"subtitle_burn_in": burn_subtitles}
+    if max_mb is not None:
+        overrides["max_file_size_mb"] = max_mb
+    if bgm_volume is not None:
+        overrides["bgm_volume"] = bgm_volume
+        overrides["bgm_type"] = "random" if bgm_volume > 0 else ""
+    inside = f"/MoneyPrinterTurbo/storage/tasks/{task_id}"
+    subprocess.run(
+        [
+            "docker", "exec", "-w", "/MoneyPrinterTurbo", CONTAINER,
+            "python3", "-c", RECOMPOSE_CODE, inside, json.dumps(overrides),
+        ],
+        check=True,
+    )
+    return _report_done(task_id, status(task_id) or {})
+
+
 def preview(task_id, columns=3, rows=3):
     """在 API 容器里用 ffmpeg 抽帧拼图（宿主机不一定有 ffmpeg），返回宿主机上的路径。"""
     duration = None
@@ -222,6 +281,12 @@ def main():
     wait_parser.add_argument("--timeout", type=int, default=150, help="minutes")
     sub.add_parser("status").add_argument("task_id")
     sub.add_parser("preview").add_argument("task_id")
+    sub.add_parser("active")
+    recompose_parser = sub.add_parser("recompose")
+    recompose_parser.add_argument("task_id")
+    recompose_parser.add_argument("--burn-subtitles", action="store_true")
+    recompose_parser.add_argument("--max-mb", type=float)
+    recompose_parser.add_argument("--bgm-volume", type=float)
 
     args = parser.parse_args()
     if args.command == "submit":
@@ -234,6 +299,10 @@ def main():
         print(json.dumps(status(args.task_id), ensure_ascii=False, indent=2))
     elif args.command == "preview":
         preview(args.task_id)
+    elif args.command == "active":
+        active()
+    elif args.command == "recompose":
+        recompose(args.task_id, args.burn_subtitles, args.max_mb, args.bgm_volume)
 
 
 if __name__ == "__main__":

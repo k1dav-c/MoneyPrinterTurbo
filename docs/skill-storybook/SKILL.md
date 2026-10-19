@@ -16,20 +16,26 @@ description: Use this skill when the user wants a hand-drawn animated video (kno
 
 ## 做一支科普影片
 
-1. **自己寫稿**（最重要，見下一節）。存成 UTF-8 文字檔，一行一句。使用者給的是主題時由你寫；
-   使用者給了稿就照用，只修正事實錯誤並告知。
-2. **提交並等待**：以 `SKILL_DIR`（本檔所在目錄）為工作目錄，前景執行，timeout 至少 150 分鐘：
+1. **自己寫稿**（最重要，見下一節）。存成 UTF-8 文字檔，一行一句，放在
+   `~/src/MoneyPrinterTurbo/storage/scripts/<主題英文 slug>-zh-TW.txt`（之後可重用、重做）。
+   使用者給的是主題時由你寫；使用者給了稿就照用，只修正事實錯誤並告知。寫完先把稿給使用者看一眼
+   字數與預估長度，再提交（一支片要跑約一小時，稿錯了很浪費）。
+2. **確認沒有其他任務在跑**：`python3 mpt_storybook.py active`。2 核機器一次只跑一支，
+   同時跑會讓兩支都慢一倍以上；有任務在跑就排在它後面。
+3. **提交並等待**：以 `SKILL_DIR`（本檔所在目錄）為工作目錄。整個流程約一小時，遠超過前景指令
+   10 分鐘的上限，所以**用背景執行**（Bash 的 `run_in_background: true`），等完成通知即可：
 
    ```bash
    MPT_PUBLIC=http://192.168.9.6:8080 python3 mpt_storybook.py run \
      --subject "傅利葉轉換是什麼" --script-file /path/to/script.txt --genre explainer
    ```
 
-   helper 自己會輪詢並印出進度，不要另外用 sleep/ps/tail 輪詢。結束時印出 `DONE {...}`，
-   內含網址、檔案大小、分鏡和動畫頁面路徑。
-3. **檢查**：`python3 mpt_storybook.py preview <task_id>` 產生 3×3 截圖拼圖，用 Read 看一遍：
+   提交後告訴使用者 task_id、預估完成時間，以及兩個網址（成片和 SRT 在完成前就能先寫給他）。
+   helper 自己會輪詢並把進度寫進輸出檔；中途要回答進度時讀一次輸出檔的最後幾行即可，
+   不要另外用 sleep/ps/tail 迴圈輪詢。結束時印出 `DONE {...}`，內含網址、檔案大小、分鏡和動畫頁面路徑。
+4. **檢查**：`python3 mpt_storybook.py preview <task_id>` 產生 3×3 截圖拼圖，用 Read 看一遍：
    畫面是否在講旁白講的東西、字卡文字有沒有錯字（分鏡模型偶爾會改字）。
-4. **交付**：給使用者影片網址、SRT 網址、長度、大小，並如實說明看到的瑕疵。你聽不到聲音，要說明沒有試聽。
+5. **交付**：給使用者影片網址、SRT 網址、長度、大小，並如實說明看到的瑕疵。你聽不到聲音，要說明沒有試聽。
    字幕沒燒進畫面，所以拼圖上看不到字幕是正常的；字幕內容要另外讀 SRT 檢查。
 
 只給主題、不想寫稿時，可以省略 `--script-file`，改用 `--duration 120`（必要時加 `--prompt` 補充要點），
@@ -46,12 +52,15 @@ description: Use this skill when the user wants a hand-drawn animated video (kno
 - **術語最多 2–4 個**，先給直覺、再給名字（「這個『看』，叫做注意力」）。
 - **每句都要教到東西**，不要角色拌嘴、不要情緒鋪陳。一行一句，句子短。
 - **寫出畫面能畫的東西**：字卡、箭頭、長條圖、比例、疊層。圖上要出現的字要和旁白用字完全一致。
+- **關鍵字全片只用一種寫法**：不要混用近義字（它/牠/祂、傅立葉/傅利葉、資料/數據），
+  分鏡模型會照它看到的字畫字卡，混用就會畫錯（實例：旁白是「牠」，字卡被畫成「它」）。
 - 事實要正確；簡化可以，但不能說錯，必要時加一句「實際上還會…」。
 - 用台灣慣用語（影片、程式、資訊、網路），語言 `zh-TW`。
 
-**長度**：Edge 台灣女聲約每秒 4.5 個中文字。稿長（字數）÷ 4.5 ≈ 秒數。
-20 MB 上限下：約 100 秒內保持 1080p，約 100–250 秒會降到 720p，再長會降到 540p。
-科普片建議 120–200 秒。
+**長度**：實測成片總長 ≈ 字數 × 0.24 秒（每 100 字約 24 秒，含句間停頓和場景留白；
+Edge 台灣女聲純講話約每秒 4.5–4.9 字）。例：948 字 → 220 秒、921 字 → 231 秒。
+20 MB 上限下：約 100 秒（≈ 400 字）內保持 1080p，約 100–250 秒降到 720p，再長降到 540p。
+科普片建議 500–850 字（約 2–3.5 分鐘）。使用者要 1080p 又要長片時，提高 `--max-mb` 或拆成多支。
 
 ## 參數（mpt_storybook.py）
 
@@ -66,17 +75,40 @@ description: Use this skill when the user wants a hand-drawn animated video (kno
 | `--bgm-volume` | 0.12 | 0 = 不要背景音樂 |
 | `--burn-subtitles` | 關 | 把字幕畫進影片；預設另存 SRT（適合 YouTube） |
 
-## 時間預期（2 核 CPU）
+## 時間預期（2 核 CPU，實測）
 
-寫稿 1–3 分鐘、配音 < 1 分鐘、Claude 畫動畫 10–25 分鐘、錄製約影片長度 × 7、合成約影片長度 × 3、
-壓縮數分鐘。3 分鐘的片約 70 分鐘。
+| 階段 | 時間 | 實例（220 秒、28 場景的 Transformer） |
+|---|---|---|
+| 分鏡（有稿時只跑這一輪） | 1–3 分鐘 | 約 1 分鐘 |
+| 配音 | < 1 分鐘 | 數十秒 |
+| Claude 畫動畫 | 10–25 分鐘，隨場景數增加 | 16 分鐘 |
+| 錄製 | 約影片長度 × 7 | 約 25 分鐘 |
+| 合成背景音樂（與字幕） | 約影片長度 × 3 | 約 11 分鐘 |
+| 壓縮到 20MB | 約影片長度 × 1.5 | 約 5 分鐘 |
+| **合計** | **約影片長度 × 17** | **約 62 分鐘** |
+
+Claude 第一版頁面若有 JS 錯誤，系統會自動把錯誤丟回去修（通常 20 秒內），不需要介入。
+
+## 只改字幕、音樂或大小，不重畫
+
+成片已經做好、只想換字幕方式（燒錄/另存 SRT）、背景音樂音量或檔案上限時，不要重新提交
+（那會重寫分鏡、重畫動畫、花 Claude 額度）。沿用已錄好的動畫重做合成即可，約影片長度 × 4.5：
+
+```bash
+python3 mpt_storybook.py recompose <task_id>                    # 字幕另存 SRT（預設）
+python3 mpt_storybook.py recompose <task_id> --burn-subtitles   # 字幕畫進影片
+python3 mpt_storybook.py recompose <task_id> --max-mb 50 --bgm-volume 0.08
+```
+
+一樣要用背景執行。改稿、改畫面才需要重新提交。
 
 ## 疑難排解
 
 - **`Not logged in`**：`.env` 的 `CLAUDE_CODE_OAUTH_TOKEN` 失效。請使用者在自己的電腦跑
   `claude setup-token`，更新 `.env` 後 `docker compose -f docker-compose.storybook.yml up -d`。
   驗證：`echo 'say ok' | docker exec -i moneyprinterturbo-webui claude -p --model haiku`
-- **task not found**：任務狀態存在記憶體，容器重啟就會消失（檔案還在）。**有任務在跑時不要重啟容器。**
+- **task not found**：任務狀態存在記憶體，容器重啟就會消失（檔案還在）。**重啟容器前一定先跑
+  `python3 mpt_storybook.py active`，有任務在跑就等它結束。**
   helper 會在成片檔存在時直接回報完成，否則要重新提交。
 - **失敗時**：看 `docker logs --since 30m moneyprinterturbo-api | grep -E 'storybook|ERROR'`。
   中間產物在 `storage/tasks/<id>/storybook/`：`story.json`（分鏡）、`timeline.json`、`index.html`
