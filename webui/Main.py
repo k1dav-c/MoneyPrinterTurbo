@@ -2065,6 +2065,8 @@ def _render_generation_task_snapshot(task_id, task):
                     index=warning.get("video_index", "")
                 )
             )
+        elif isinstance(warning, Mapping) and warning.get("code") == "compression_failed":
+            st.warning(tr("Compression Failed Warning"))
         else:
             st.warning(str(warning))
 
@@ -5510,6 +5512,8 @@ def _render_video_settings(panel, params):
             else:
                 _set_runtime_config("app", "video_codec", selected_video_codec)
 
+            _render_file_size_limit(params)
+
             concurrency_options = [1, 2, 4, 6, 8]
             if params.video_source in {"pexels", "pixabay", "coverr"}:
                 selected_material_concurrency = stable_selectbox(
@@ -5554,6 +5558,22 @@ def _render_video_settings(panel, params):
     return uploaded_files
 
 
+FILE_SIZE_LIMIT_OPTIONS = [0, 10, 20, 50, 100]
+
+
+def _render_file_size_limit(params):
+    """成片大小上限：超出时两遍编码压缩，方便在社群平台传播。"""
+    params.max_file_size_mb = stable_selectbox(
+        tr("Max File Size"),
+        options=FILE_SIZE_LIMIT_OPTIONS,
+        default_value=_saved_ui_choice("max_file_size_mb", FILE_SIZE_LIMIT_OPTIONS, 20),
+        key="max_file_size_mb_select",
+        format_func=lambda value: tr("No Compression") if not value else f"≤ {value} MB",
+        help=tr("Max File Size Help"),
+    )
+    _set_runtime_config("ui", "max_file_size_mb", params.max_file_size_mb)
+
+
 def _render_storybook_settings(params):
     """故事动画的画风、时长、画幅和配音选项。"""
     st.caption(tr("Hand-drawn Storybook Animation Help"))
@@ -5574,6 +5594,23 @@ def _render_storybook_settings(params):
         format_func=style_labels.get,
     )
     _set_runtime_config("ui", "storybook_style", params.storybook_style)
+
+    genre_labels = {
+        "story": tr("Storybook Genre Story"),
+        "explainer": tr("Storybook Genre Explainer"),
+    }
+    genre_values = list(storybook.GENRES)
+    params.storybook_genre = stable_selectbox(
+        tr("Storybook Genre"),
+        options=genre_values,
+        default_value=_saved_ui_choice(
+            "storybook_genre", genre_values, storybook.DEFAULT_GENRE
+        ),
+        key="storybook_genre_select",
+        format_func=genre_labels.get,
+        help=tr("Storybook Genre Help"),
+    )
+    _set_runtime_config("ui", "storybook_genre", params.storybook_genre)
 
     duration_values = [30, 45, 60, 90, 120, 180, 300]
     params.storybook_duration = stable_selectbox(
@@ -5603,6 +5640,8 @@ def _render_storybook_settings(params):
         )
     )
     _set_runtime_config("ui", "video_aspect_storybook", params.video_aspect.value)
+
+    _render_file_size_limit(params)
 
     params.storybook_use_doubao = st.checkbox(
         tr("Storybook Use Doubao Voice"),

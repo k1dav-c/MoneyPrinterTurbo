@@ -46,6 +46,38 @@ class TestStoryboardParsing(unittest.TestCase):
             storybook._parse_story_json(json.dumps({"scenes": [{"lines": []}]}))
 
 
+class TestExplainerGenre(unittest.TestCase):
+    def test_explainer_uses_teaching_prompts_and_verbatim_storyboard(self):
+        prompts = []
+        responses = iter(["draft", "revised script", json.dumps(STORYBOARD, ensure_ascii=False)])
+
+        def fake_llm(prompt, app_config=None):
+            prompts.append(prompt)
+            return next(responses)
+
+        params = VideoParams(video_subject="Transformer", storybook_genre="explainer")
+        with patch.object(storybook, "_ask_llm", side_effect=fake_llm):
+            story = storybook.generate_story(params)
+
+        self.assertEqual(story["genre"], "explainer")
+        self.assertIn("EXPLAINER", prompts[0])
+        self.assertIn("NEVER heard", prompts[1])
+        self.assertIn("VERBATIM", prompts[2])
+        self.assertIn("revised script", prompts[2])
+        self.assertNotIn("治愈", "".join(prompts))
+
+    def test_story_genre_keeps_original_prompts(self):
+        prompts = []
+        responses = iter(["draft", "revised", json.dumps(STORYBOARD, ensure_ascii=False)])
+        params = VideoParams(video_subject="x")
+        with patch.object(
+            storybook, "_ask_llm", side_effect=lambda p, a=None: prompts.append(p) or next(responses)
+        ):
+            storybook.generate_story(params)
+        self.assertIn("治愈", prompts[0])
+        self.assertNotIn("VERBATIM", prompts[2])
+
+
 class TestTimeline(unittest.TestCase):
     def test_lines_follow_real_audio_and_short_scenes_get_minimum_length(self):
         story = storybook._parse_story_json(json.dumps(STORYBOARD, ensure_ascii=False))

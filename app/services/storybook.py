@@ -29,7 +29,7 @@ from loguru import logger
 from app.config import config
 from app.models import const
 from app.models.schema import VideoAspect, VideoParams
-from app.services import doubao_tts, llm, task_artifacts, video, voice
+from app.services import compress, doubao_tts, llm, task_artifacts, video, voice
 from app.services import state as sm
 from app.utils import utils
 
@@ -43,6 +43,11 @@ STYLES = {
     "night_picture_book": "cozy night picture book: warm lamp light vs cool moonlight, boiling-line characters (skill section 3.4)",
 }
 DEFAULT_STYLE = "watercolor"
+
+# 内容类型：story 是原文章的治愈系故事；explainer 是知识科普，目标是让观众
+# 看完能用一句话讲清楚主题，而不是被情节打动。
+GENRES = ("story", "explainer")
+DEFAULT_GENRE = "story"
 
 DEFAULT_SKILL_PATH = os.path.join(
     "resource", "skills", "hand-drawn-storybook-animation", "SKILL.md"
@@ -170,9 +175,13 @@ def generate_story(params: VideoParams, app_config=None) -> dict:
     )
     extra = (params.video_script_prompt or "").strip()
 
-    if (params.video_script or "").strip():
+    genre = params.storybook_genre if params.storybook_genre in GENRES else DEFAULT_GENRE
+    provided_script = bool((params.video_script or "").strip())
+    if provided_script:
         revised = params.video_script.strip()
         logger.info("storybook: using the provided script, skipping write/critique rounds")
+    elif genre == "explainer":
+        revised = _write_explainer(subject, style, language, duration, language_rule, extra, app_config)
     else:
         logger.info("storybook: round 1/3 - writing the story")
         draft = _ask_llm(
@@ -200,6 +209,23 @@ def generate_story(params: VideoParams, app_config=None) -> dict:
             app_config,
         )
 
+    if genre == "explainer":
+        genre_rules = (
+            "This is an EXPLAINER: almost every line is spoken by the narrator; "
+            "characters (if any) are visual metaphors and rarely speak. Each scene "
+            "teaches exactly one idea, and its 'visual' must DRAW that idea as a "
+            "hand-drawn diagram (cards, arrows, lines whose thickness shows weight, "
+            "percentages, stacked layers, bar charts...) with 1-4 short on-screen "
+            "keyword labels written in the visual description in quotes. "
+        )
+    else:
+        genre_rules = ""
+    verbatim_rule = (
+        "Keep the script's spoken wording VERBATIM and in order - split it into "
+        "lines, do not rewrite, shorten or add sentences. "
+        if provided_script or genre == "explainer"
+        else ""
+    )
     logger.info("storybook: round 3/3 - building the storyboard")
     storyboard = _ask_llm(
         "根据剧本生成分镜：每个镜头一格，标上景别，写上画面内容和台词。\n"
@@ -210,8 +236,9 @@ def generate_story(params: VideoParams, app_config=None) -> dict:
         ' "scenes": [{"shot": "wide|medium|close-up|insert|low-angle", '
         '"visual": str, "action": str, "transition": str,\n'
         '   "lines": [{"speaker": "narrator" or a character id, "text": str}]}]}\n'
-        f"Rules: {max(4, duration // 9)}-{max(6, duration // 5)} scenes; every scene "
-        "has 0-3 short lines (one sentence each, no stage directions inside text); "
+        f"Rules: {genre_rules}{verbatim_rule}"
+        f"{max(4, duration // 9)}-{max(6, duration // 5)} scenes; every scene "
+        "has 0-4 short lines (one sentence each, no stage directions inside text); "
         "'look' describes a fixed design so the character stays consistent; 'voice' "
         "describes age and personality for a TTS voice (tiny creatures only make "
         "cute sounds); visual descriptions are concrete and drawable in the style: "
@@ -221,8 +248,60 @@ def generate_story(params: VideoParams, app_config=None) -> dict:
     )
     story = _parse_story_json(storyboard)
     story["style"] = params.storybook_style or DEFAULT_STYLE
+    story["genre"] = genre
     story["script"] = revised
     return story
+
+
+def _write_explainer(
+    subject: str,
+    style: str,
+    language: str,
+    duration: int,
+    language_rule: str,
+    extra: str,
+    app_config=None,
+) -> str:
+    """科普稿：先写教学稿，再以“完全没听过的聪明新手”的角度挑出没讲懂的地方。"""
+    logger.info("storybook: round 1/3 - writing the explainer script")
+    draft = _ask_llm(
+        "Write the narration script for a short hand-drawn animated EXPLAINER video. "
+        "The only goal: a smart viewer who has never heard of the topic can explain it "
+        "in one sentence afterwards, and understands why it matters.\n"
+        f"Topic: {subject}\n"
+        f"Target length: {duration} seconds, {_target_length_hint(language, duration)}.\n"
+        "Structure:\n"
+        "1. Hook + a plain one-sentence definition in the first 10 seconds "
+        "(what it is and what it does).\n"
+        "2. The problem it solves, with an everyday example.\n"
+        "3. How it was done before and why that fell short.\n"
+        "4. The core idea, explained through ONE concrete running example that is "
+        "reused all the way through; walk through it step by step with numbers or "
+        "concrete outcomes, not slogans.\n"
+        "5. Only the 2-4 most important technical terms, each introduced AFTER the "
+        "intuition it names and explained in plain words. Skip details that do not "
+        "serve understanding.\n"
+        "6. Why it matters / where it is used today.\n"
+        "7. A one-sentence recap that repeats the definition.\n"
+        "Narrator-led, warm, conversational; short sentences; no character banter; "
+        "every sentence must teach something. Facts must be accurate. Output only "
+        "the narration, one sentence per line, with a short [visual idea] note "
+        f"before each block describing a diagram to draw in this style: {style}.\n"
+        f"{language_rule}\n{extra}",
+        app_config,
+    )
+    logger.info("storybook: round 2/3 - beginner critique and revision")
+    return _ask_llm(
+        "Read this explainer script as a smart beginner who has NEVER heard of the "
+        "topic, then as a domain expert. List: where you got lost, every term used "
+        "before it was explained, steps that were asserted instead of shown with the "
+        "running example, anything inaccurate, and any sentence that does not teach. "
+        "Then output ONLY the full improved script in the same format and target "
+        "length. The final version must start with a plain definition and end with a "
+        "one-sentence recap.\n"
+        f"{language_rule}\n\n--- SCRIPT ---\n{draft}",
+        app_config,
+    )
 
 
 # ---------------------------------------------------------------- 配音与时间线
@@ -605,6 +684,15 @@ def build_animation(
         "(mouth moves while their own lines play; the narrator has no mouth).\n"
         "- Keep characters' designs fixed for the whole film (see 'look' in story.json)."
     )
+    if story.get("genre") == "explainer":
+        prompt += (
+            "\n- This is an EXPLAINER. Clarity beats decoration: draw each scene's "
+            "diagram exactly as described in 'visual' (hand-drawn, in the film's style), "
+            "keep it large and centred, let elements appear in the order the narration "
+            "mentions them (use line start times), and draw the quoted keyword labels "
+            "as short hand-lettered text. Keep labels away from the bottom 20% of the "
+            "frame, where subtitles are burned in."
+        )
     html_file = os.path.join(work_dir, "index.html")
     attempts = max(0, int(config.app.get("storybook_fix_attempts", 2) or 0))
     payload = _run_claude(prompt, work_dir)
@@ -883,6 +971,15 @@ def run(task_id: str, params: VideoParams, stop_at: str = "video", fail=None) ->
         logger.exception("storybook: rendering failed")
         return _fail("video", f"{type(exc).__name__}: {exc}")
 
+    warnings = [] if bgm_ok else [{"code": "storybook_bgm_failed", "video_index": 1}]
+    if params.max_file_size_mb:
+        sm.state.update_task(task_id, state=const.TASK_STATE_PROCESSING, progress=95)
+        try:
+            compress.compress_to_limit(final_file, params.max_file_size_mb)
+        except Exception as exc:
+            logger.warning(f"storybook: compression failed, keeping original: {exc}")
+            warnings.append({"code": "compression_failed", "video_index": 1})
+
     result = {
         "videos": [final_file],
         "combined_videos": [combined_file],
@@ -892,7 +989,7 @@ def run(task_id: str, params: VideoParams, stop_at: str = "video", fail=None) ->
         "audio_duration": timeline.duration,
         "subtitle_path": subtitle_path,
         "materials": [],
-        "warnings": None if bgm_ok else [{"code": "storybook_bgm_failed", "video_index": 1}],
+        "warnings": warnings or None,
     }
     sm.state.update_task(task_id, state=const.TASK_STATE_COMPLETE, progress=100, **result)
     logger.success(f"storybook task {task_id} finished: {final_file}")

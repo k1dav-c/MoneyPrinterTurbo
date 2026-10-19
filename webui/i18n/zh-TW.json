@@ -621,6 +621,14 @@
     "Doubao TTS API Key Help": "在火山引擎語音控制台（語音合成 2.0）建立的 API Key，也可以用環境變數 DOUBAO_TTS_API_KEY 提供。",
     "Doubao TTS Voice": "豆包音色",
     "Storybook Claude Model": "故事動畫 Claude 模型",
-    "Storybook Claude Model Help": "繪製動畫時傳給 claude CLI 的模型，例如 opus。留空則使用 Claude Code Provider 的模型或 CLI 預設模型。"
+    "Storybook Claude Model Help": "繪製動畫時傳給 claude CLI 的模型，例如 opus。留空則使用 Claude Code Provider 的模型或 CLI 預設模型。",
+    "Storybook Genre": "內容類型",
+    "Storybook Genre Story": "故事（療癒繪本）",
+    "Storybook Genre Explainer": "知識科普（講清一個概念）",
+    "Storybook Genre Help": "科普稿會先給出白話定義，用一個例子貫穿到底，再以新手視角檢查哪裡沒講懂，最後一句話總結。",
+    "Max File Size": "檔案大小上限",
+    "No Compression": "不壓縮",
+    "Max File Size Help": "超過上限時用兩遍 H.264 編碼壓縮，必要時才降低解析度。20MB 適合大多數社群平台。",
+    "Compression Failed Warning": "影片壓縮失敗，已保留未壓縮的成片。"
   }
 }

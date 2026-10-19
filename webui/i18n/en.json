@@ -621,6 +621,14 @@
     "Doubao TTS API Key Help": "API key from the Volcengine speech console (speech synthesis 2.0). Can also be provided as the DOUBAO_TTS_API_KEY environment variable.",
     "Doubao TTS Voice": "Doubao TTS Voice",
     "Storybook Claude Model": "Storybook Claude Model",
-    "Storybook Claude Model Help": "Model passed to the claude CLI when drawing the animation, e.g. opus. Empty uses the Claude Code provider model or the CLI default."
+    "Storybook Claude Model Help": "Model passed to the claude CLI when drawing the animation, e.g. opus. Empty uses the Claude Code provider model or the CLI default.",
+    "Storybook Genre": "Content Type",
+    "Storybook Genre Story": "Story (heart-warming picture book)",
+    "Storybook Genre Explainer": "Explainer (teach a concept)",
+    "Storybook Genre Help": "Explainer scripts start with a plain definition, follow one running example, are reviewed from a beginner's point of view and end with a one-sentence recap.",
+    "Max File Size": "Max File Size",
+    "No Compression": "No compression",
+    "Max File Size Help": "Videos larger than this are re-encoded (two-pass H.264) to fit, lowering resolution only when needed. 20 MB suits most social platforms.",
+    "Compression Failed Warning": "Compressing the video failed; the uncompressed video was kept."
   }
 }

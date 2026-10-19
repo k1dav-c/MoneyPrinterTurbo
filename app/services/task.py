@@ -17,6 +17,7 @@ from app.config import config
 from app.models import const
 from app.models.schema import VideoConcatMode, VideoParams
 from app.services import bgm as bgm_service
+from app.services import compress
 from app.services import (
     elevenlabs_music,
     llm,
@@ -256,6 +257,17 @@ def _is_cross_post_owner_alive(owner: str | None) -> bool:
         )
         return True
     return True
+
+
+def _compress_final_video(
+    final_video_path: str, params: VideoParams, warnings: list, index: int
+) -> None:
+    """按大小上限压缩成片；压缩失败只记警告，保留未压缩的成片。"""
+    try:
+        compress.compress_to_limit(final_video_path, params.max_file_size_mb or 0)
+    except Exception as exc:
+        logger.warning(f"failed to compress {final_video_path}: {exc}")
+        warnings.append({"code": "compression_failed", "video_index": index})
 
 
 def _mark_task_failed(
@@ -1132,6 +1144,7 @@ def generate_final_videos(
                 }
             )
 
+        _compress_final_video(final_video_path, params, warnings, index)
         final_video_paths.append(final_video_path)
         combined_video_paths.append(combined_video_path)
         _progress += 50 / params.video_count / 2

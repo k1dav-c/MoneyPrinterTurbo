@@ -161,10 +161,14 @@ class VideoParams(BaseModel):
     paragraph_number: int = Field(default=1, ge=1, le=10)
     video_script_prompt: str = Field(default="", max_length=2000)
     custom_system_prompt: str = Field(default="", max_length=8000)
-    # 仅 video_source="storybook" 使用：画风、目标时长（秒）以及是否优先用豆包配音。
+    # 仅 video_source="storybook" 使用：画风、内容类型（story/explainer）、目标时长（秒）
+    # 以及是否优先用豆包配音。
     storybook_style: str = Field(default="watercolor", max_length=64)
+    storybook_genre: str = Field(default="story", max_length=32)
     storybook_duration: int = Field(default=60, ge=15, le=600)
     storybook_use_doubao: bool = True
+    # 成片大小上限（MB），超出时两遍编码压缩；0 表示不压缩。
+    max_file_size_mb: float = Field(default=0, ge=0, le=4096, allow_inf_nan=False)
 
 
 class SubtitleRequest(BaseModel):
